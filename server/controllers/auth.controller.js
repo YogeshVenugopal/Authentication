@@ -91,3 +91,64 @@ export const logout = async (req, res) => {
         return res.status(400).json({ message: error.message });
     }
 }
+
+
+export const verifyOpt = async (req, res) => {
+    const { userId } = req.body;
+
+    try {
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(400).json({ message: "User does not exist" });
+        }
+        if(user.isAccountVerified){
+            return res.status(400).json({ message: "User is already verified" });
+        }
+        const opt = String(Math.floor(100000 + Math.random() * 900000));
+        user.verifyOtp = opt;
+        user.verifyOtpExpireAt = Date.now() + 24 * 60 * 60 * 1000;
+        await user.save();
+        const mailOptions = {
+            from: process.env.SENDER_EMAIL,
+            to: user.email.trim(),
+            subject: "Verify your email",
+            text: `Your OTP is : ${opt}`
+        }
+        await transporter.sendMail(mailOptions);
+    
+    } catch (error) {
+        console.log(error);
+        return res.status(400).json({ message: error.message });
+    }
+
+}
+
+export const verifyOtp = async (req, res) => {
+    const { userId, otp } = req.body;
+    if(!userId || !otp){
+        return res.status(400).json({ message: "All fields are required" });
+    }
+    try {
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(400).json({ message: "User does not exist" });
+        }
+        if(user.isAccountVerified){
+            return res.status(400).json({ message: "User is already verified" });
+        }
+        if (user.verifyOtpExpireAt < Date.now()) {
+            return res.status(400).json({ message: "OTP has expired" });
+        }
+        if (user.verifyOtp !== otp || user.verifyOtp === "") {
+            return res.status(400).json({ message: "Invalid OTP" });
+        }
+        user.isAccountVerified = true;
+        user.verifyOtp = "";
+        user.verifyOtpExpireAt = 0; 
+        await user.save();
+        return res.status(200).json({ message: "User verified successfully" });
+    } catch (error) {
+        console.log(error);
+        return res.status(400).json({ message: error.message });
+    }
+}
