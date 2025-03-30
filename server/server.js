@@ -3,7 +3,8 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
-import router from "./routes/auth.route.js";
+import authRouter from "./routes/auth.route.js";
+import userRouter from "./routes/user.route.js";
 import mongoose from "mongoose";
 
 // config the environment variables //
@@ -28,7 +29,8 @@ app.use(cors({
 app.use(cookieParser());
 
 // routes //
-app.use("/", router);
+app.use("/auth/", authRouter);
+app.use("/user/", userRouter);
 
 // start the server //
 app.listen(port, () => {
